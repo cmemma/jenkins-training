@@ -1,39 +1,28 @@
 pipeline {
     agent any
-    parameters {
-        choice(name: 'NUMBER',
-            choices: [10,20,30,40,50,60,70,80,90],
-            description: 'Select the value for F(n) for the Fibonnai sequence.')
-    }
     options {
         buildDiscarder(logRotator(daysToKeepStr: '10', numToKeepStr: '10'))
         timeout(time: 12, unit: 'HOURS')
         timestamps()
     }
-    triggers {
-        cron '@midnight'
-    }
     stages {
-        stage('Make executable') {
+        stage('Requirements') {
             steps {
-                sh('chmod +x ./scrips/fibonacci.sh')
+                // this step is required to make sure the script
+                // can be executed directly in a shell
+                sh('chmod +x ./algorithm.sh')
             }
         }
-        stage('Relative path') {
+        stage('Build') {
             steps {
-                sh("./scrips/fibonacci.sh ${env.NUMBER}")
-            }
-        }
-        stage('Full path') {
-            steps {
-                sh("${env.WORKSPACE}/scrips/fibonacci.sh ${env.NUMBER}")
-            }
-        }
-        stage('Change directory') {
-            steps {
-                dir("${env.WORKSPACE}/scrips"){
-                    sh("./fibonacci.sh ${env.NUMBER}")
-                }
+                // the algorithm script creates a file named report.txt
+                sh('./algorithm.sh')
+
+                // this step archives the report
+                archiveArtifacts allowEmptyArchive: true,
+                    artifacts: '*.txt',
+                    fingerprint: true,
+                    onlyIfSuccessful: true
             }
         }
     }
